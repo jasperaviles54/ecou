@@ -1,30 +1,46 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return res.status(200).json({ error: "GEMINI_API_KEY not set" });
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return res.status(200).json({ error: "GROQ_API_KEY not set" });
 
   const keyPreview = `${key.substring(0, 5)}...${key.substring(key.length - 4)}`;
 
   try {
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const result = await model.generateContent("Say hi in one word");
-    const text = result.response.text();
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: "Say hi in one word" }],
+        max_tokens: 10,
+      }),
+    });
+
+    const data = await groqRes.json();
+
+    if (!groqRes.ok) {
+      return res.status(200).json({
+        keyPreview,
+        status: "ERROR",
+        httpStatus: groqRes.status,
+        error: data,
+      });
+    }
 
     return res.status(200).json({
       keyPreview,
       status: "SUCCESS",
-      response: text,
+      response: data.choices?.[0]?.message?.content,
     });
   } catch (err) {
     return res.status(200).json({
       keyPreview,
       status: "ERROR",
       errorMessage: err.message,
-      errorDetails: err.errorDetails || null,
     });
   }
 };
