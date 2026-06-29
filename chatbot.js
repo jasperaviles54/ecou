@@ -7,7 +7,7 @@
   "use strict";
 
   /* ── Config ─────────────────────────────────────────────────── */
-  const API_URL = "/api/chat";
+  const API_URL = "https://ecou-five.vercel.app/api/chat";
   const WELCOME_MSG =
     "Hi there! 👋 I'm **EcoBot**, your AI Career Guidance Assistant. I can help with career advice, resume tips, interview prep, and more. What would you like to explore?";
   const QUICK_REPLIES = [
