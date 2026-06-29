@@ -1,3 +1,5 @@
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
 module.exports = async function handler(req, res) {
   /* ── CORS ─────────────────────────────────────────────────── */
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -36,53 +38,40 @@ Guidelines:
 - Do NOT provide legal, medical, or financial advice
 - When uncertain, recommend the student visit the Career Center for personalized help`;
 
-  // Convert chat history to Gemini format
-  const contents = [];
-  for (const msg of history.slice(-10)) {
-    contents.push({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.text }],
-    });
-  }
-  contents.push({ role: "user", parts: [{ text: message }] });
-
-  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-
   try {
-    const geminiRes = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY,
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.9,
-          maxOutputTokens: 512,
-        },
-      }),
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      systemInstruction: systemPrompt,
     });
 
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.text();
-      console.error("Gemini API error:", geminiRes.status, errBody);
-      return res.status(502).json({
-        error: "Failed to get a response from the AI",
-        debug: { status: geminiRes.status, body: errBody }
+    // Build chat history in SDK format
+    const chatHistory = [];
+    for (const msg of history.slice(-10)) {
+      chatHistory.push({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.text }],
       });
     }
 
-    const data = await geminiRes.json();
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I'm sorry, I couldn't generate a response right now. Please try again.";
+    const chat = model.startChat({
+      history: chatHistory,
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.9,
+        maxOutputTokens: 512,
+      },
+    });
+
+    const result = await chat.sendMessage(message);
+    const reply = result.response.text();
 
     return res.status(200).json({ reply });
   } catch (err) {
     console.error("Chat handler error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(502).json({
+      error: "Failed to get a response from the AI",
+      debug: { message: err.message },
+    });
   }
-}
+};
