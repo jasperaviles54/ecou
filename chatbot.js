@@ -211,6 +211,7 @@
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        console.error("API error details:", err);
         throw new Error(err.error || "Request failed");
       }
 

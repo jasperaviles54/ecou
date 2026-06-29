@@ -66,7 +66,10 @@ Guidelines:
     if (!geminiRes.ok) {
       const errBody = await geminiRes.text();
       console.error("Gemini API error:", geminiRes.status, errBody);
-      return res.status(502).json({ error: "Failed to get a response from the AI" });
+      return res.status(502).json({
+        error: "Failed to get a response from the AI",
+        debug: { status: geminiRes.status, body: errBody }
+      });
     }
 
     const data = await geminiRes.json();
