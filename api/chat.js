@@ -46,7 +46,7 @@ Guidelines:
   }
   contents.push({ role: "user", parts: [{ text: message }] });
 
-  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
 
   try {
     const geminiRes = await fetch(apiUrl, {
