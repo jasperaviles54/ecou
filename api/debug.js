@@ -2,39 +2,48 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   const key = process.env.GEMINI_API_KEY;
-  const keyPreview = key
-    ? `${key.substring(0, 5)}...${key.substring(key.length - 4)} (${key.length} chars)`
-    : "NOT SET";
+  if (!key) return res.status(200).json({ error: "GEMINI_API_KEY not set" });
 
-  // Quick test: try calling Gemini with a minimal request
-  let geminiStatus = "not tested";
-  if (key) {
+  const model = "gemini-2.0-flash-lite";
+  const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const body = JSON.stringify({
+    contents: [{ role: "user", parts: [{ text: "Say hi in one word" }] }],
+    generationConfig: { maxOutputTokens: 10 },
+  });
+
+  const methods = {
+    "query_param": {
+      url: `${baseUrl}?key=${key}`,
+      headers: { "Content-Type": "application/json" },
+    },
+    "x-goog-api-key": {
+      url: baseUrl,
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    },
+    "bearer": {
+      url: baseUrl,
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+    },
+  };
+
+  const results = {};
+  for (const [name, config] of Object.entries(methods)) {
     try {
-      const testRes = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${key}`,
-          },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: "hi" }] }],
-            generationConfig: { maxOutputTokens: 10 },
-          }),
-        }
-      );
-      const body = await testRes.text();
-      geminiStatus = `${testRes.status} — ${body.substring(0, 300)}`;
+      const r = await fetch(config.url, {
+        method: "POST",
+        headers: config.headers,
+        body,
+      });
+      const text = await r.text();
+      results[name] = { status: r.status, body: text.substring(0, 200) };
     } catch (err) {
-      geminiStatus = `fetch error: ${err.message}`;
+      results[name] = { status: "error", body: err.message };
     }
   }
 
   return res.status(200).json({
-    keyPresent: !!key,
-    keyPreview,
-    geminiStatus,
-    nodeVersion: process.version,
+    keyPreview: `${key.substring(0, 5)}...${key.substring(key.length - 4)}`,
+    model,
+    results,
   });
 };
