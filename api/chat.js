@@ -46,14 +46,14 @@ Guidelines:
   }
   contents.push({ role: "user", parts: [{ text: message }] });
 
-  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
+  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
   try {
     const geminiRes = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${GEMINI_API_KEY}`,
+        "x-goog-api-key": GEMINI_API_KEY,
       },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemPrompt }] },
